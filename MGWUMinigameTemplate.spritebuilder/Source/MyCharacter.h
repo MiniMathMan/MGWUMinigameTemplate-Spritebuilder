@@ -10,5 +10,6 @@
 @interface MyCharacter : MGWUCharacter
 
 -(void)jump;
+-(void) updatev:(CGFloat)x;
 
 @end

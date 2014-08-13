@@ -28,6 +28,7 @@
 }
 
 -(void)didLoadFromCCB {
+    self.physicsBody.collisionType = @"her";
     // Set up anything connected to Sprite Builder here
 }
 
@@ -95,7 +96,13 @@
 // This method tells the character to jump by giving it an upward velocity.
 // It's been added to a physics node in the main scene, like the penguins Peeved Penguins, so it will fall automatically!
 -(void)jump {
+    if (_isIdling) {
     self.physicsBody.velocity = ccp(0,122);
+    }
+}
+
+-(void) updatev:(CGFloat)x {
+    self.physicsBody.velocity = ccp(x,self.physicsBody.velocity.y);
 }
 
 @end
