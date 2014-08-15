@@ -11,5 +11,6 @@
 
 -(void)jump;
 -(void) updatev:(CGFloat)x;
+-(void) collide;
 
 @end

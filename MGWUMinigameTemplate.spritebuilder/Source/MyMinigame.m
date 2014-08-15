@@ -23,6 +23,7 @@
     int lastblock;
     CFTimeInterval starttime;
     CCLabelTTF *_label;
+    int speed;
     
     //Bolt *_enemy;
 }
@@ -30,7 +31,7 @@
 -(id)init {
     if ((self = [super init])) {
         // Initialize any arrays, dictionaries, etc in here
-        self.instructions = @"These are the game instructions :D";
+        self.instructions = @"Dont fall behind is a game where you have to stay on the screen and jump on the enemies.  You control by using your thumb as a joystick.  Have fun.";
     }
     return self;
 }
@@ -43,21 +44,23 @@
 }
 
 -(void)onEnter {
+    speed = 100;
 
     lastblock = 450;
     newblock = 300;
     [super onEnter];
     //[self.hero jump];
     self.userInteractionEnabled = true;
-    self.multipleTouchEnabled = true;
     width = [UIScreen mainScreen].bounds.size.width;
     height = [UIScreen mainScreen].bounds.size.height;
     _physicsNode.debugDraw = TRUE;
     _physicsNode.collisionDelegate = self;
     _followNode.physicsBody.collisionMask = @[];
-    _followNode.physicsBody.velocity = ccp(100,0);
+    _followNode.physicsBody.velocity = ccp(speed,0);
+    self.contentSize = CGSizeMake(7000, self.contentSize.height);
+    _contentNode.contentSize = self.contentSize;
     _moveScreen = [CCActionFollow actionWithTarget:_followNode worldBoundary:_contentNode.boundingBox];
-    [self runAction:_moveScreen];
+    [_contentNode runAction:_moveScreen];
     _enemies = [NSMutableArray new];
     starttime = CACurrentMediaTime();
     // perform some action
@@ -85,6 +88,9 @@
 }
 
 -(void)update:(CCTime)delta {
+    speed += delta;
+    _followNode.physicsBody.velocity = ccp(speed, 0);
+    
     int time_elapsed = CACurrentMediaTime()-starttime;
 
     if (time_elapsed > 60) {
@@ -96,7 +102,7 @@
     }
     float xdif = _followNode.position.x-self.hero.position.x;
     if (xdif > width/2+200 || self.hero.position.x < -200) {
-        //[self endMinigameWithScore:5];
+        [self endMinigameWithScore:round(_contentNode.position.x/6100)];
     }
     
     
@@ -112,24 +118,18 @@
             [_physicsNode addChild:th];
         }
     }
-    if (self.contentSize.width - _followNode.position.x < width) {
-        self.contentSize = CGSizeMake(self.contentSize.width+1000, self.contentSize.height);
-        _contentNode.contentSize = self.contentSize;
-        _moveScreen = [CCActionFollow actionWithTarget:_followNode worldBoundary:_contentNode.boundingBox];
-        [self runAction:_moveScreen];
-    }
-    // Called each update cycle
+        // Called each update cycle
     // n.b. Lag and other factors may cause it to be called more or less frequently on different devices or sessions
     // delta will tell you how much time has passed since the last cycle (in seconds)
 
 
-    [self.hero updatev:(_touch.position.x-_touchBox.position.x)*2];
+    [self.hero updatev:MIN((_touch.position.x-_touchBox.position.x),160)];
     for (CCNode *_item in _enemies) {
         CGPoint thing;
         if (self.hero.position.x > _item.position.x) {
             thing = ccp(-50, 0);
         } else {
-            thing = ccp(50, 5);
+            thing = ccp(50, 0);
         }
         for (CCNode *_var in _item.children) {
             [_var.physicsBody applyForce:thing];
@@ -150,63 +150,40 @@
 // DO NOT DELETE!
 
 
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    CCLOG(@"jjjjjjjjjjjjjjjjjjjjjjj");
-    /*CGPoint touchLocation;
-    for (UITouch *touch in touches) {
-    touchLocation = [touch locationInNode:self];
-    if (touchLocation.x < width/2) {
-        _touch.position = touchLocation;
-        _touchBox.position = touchLocation;
-        moving = YES;
-    } else {
-        jumping = YES;
-
-    }
-    }*/
+- (void)touchBegan:(UITouch *)touch withEvent:(UIEvent *)event {
+    CGPoint touchLocation = [touch locationInNode:self];
+    _touch.position = touchLocation;
+    _touchBox.position = _touch.position;
 }
 
 
 
--(void) touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event {
-    CCLOG(@"fsdfsfdsdfsdsfd");
-    /*CGPoint prev;
-    for (UITouch *touch in touches) {
+-(void) touchMoved:(UITouch*)touch withEvent:(UIEvent*)event {
+
         
-        CGPoint touchLocation = [touch locationInNode:self];
-        CCLOG(@"%f",touchLocation.x);
-        prev = [touch previousLocationInView:touch.view];
-        if ((touchLocation.x < width/2) != (prev.x < width/2)) {
-            if (touchLocation.x < width/2) {
-                moving = false;
-            } else {
-                jumping = false;
-            }
-        }
-        if (moving) {
-            CGPoint touchLocation = [touch locationInNode:self];
-            _touch.position = touchLocation;
-        }
-    }*/
-}
-
--(void) touchesEnded:(NSSet *)touch withEvent:(UIEvent *)event {
-    CCLOG(@"hiu");
-    /*CGPoint touchLocation = [touch locationInNode:self];
-    if (jumping && touchLocation.x > width/2) {
+    CGPoint touchLocation = [touch locationInNode:self];
+    _touch.position = touchLocation;
+    if (_touch.position.y < _touchBox.position.y) {
+        _touchBox.position = ccp(_touchBox.position.x,_touch.position.y);
+    }
+    if ((_touch.position.y-_touchBox.position.y)>50) {
         [self.hero jump];
+        _touchBox.position = ccp(_touchBox.position.x,_touch.position.y);
     }
     
-    _touchBox.position = ccp(0, 0);
-    _touch.position = ccp(0, 0);*/
 }
 
--(void) touchesCancelled:(NSSet *)touch withEvent:(UIEvent *)event {
-    /*if (!moving) {
-        [self.hero jump];
-    }
+-(void) touchEnded:(UITouch *)touch withEvent:(UIEvent *)event {
+
+    
     _touchBox.position = ccp(0, 0);
-    _touch.position = ccp(0, 0);*/
+    _touch.position = ccp(0, 0);
+}
+
+-(void) touchCancelled:(UITouch *)touch withEvent:(UIEvent *)event {
+
+    _touchBox.position = ccp(0, 0);
+    _touch.position = ccp(0, 0);
 }
 
 -(void) ccPhysicsCollisionPostSolve:(CCPhysicsCollisionPair *)pair her:(CCNode *)nodeA enemy:(CCNode *)nodeB {
@@ -222,7 +199,11 @@
 }
 
 -(void) ccPhysicsCollisionPostSolve:(CCPhysicsCollisionPair *)pair her:(CCNode *)nodeA death:(CCNode *)nodeB {
-    [self endMinigameWithScore:0];
+    [self endMinigameWithScore:round(_contentNode.position.x/6100)];
+}
+
+-(void) ccPhysicsCollisionPostSolve:(CCPhysicsCollisionPair *)pair her:(CCNode *)nodeA block:(CCNode *)nodeB {
+    [self.hero collide];
 }
 
 @end
